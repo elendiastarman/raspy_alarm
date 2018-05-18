@@ -1,0 +1,2 @@
+graft raspy_alarm/templates
+graft raspy_alarm/static

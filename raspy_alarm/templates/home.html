@@ -1,0 +1,40 @@
+{% extends 'shell.html' %}
+
+{% block styling %}
+    {{ super() }}
+    <!-- <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='home.css') }}" /> -->
+{% endblock %}
+
+{% block content %}
+    <h2>Raspy Alarm</h2>
+
+    <br/><br/>
+
+    {% if user %}
+        <!-- INSERT TIME DISPLAY HERE -->
+        <!-- INSERT ALARM CHANGE FORM HERE -->
+
+        <!-- <ul id="webs">
+            {% for web in webs %}
+                <li><a href="{{ url_for('render_view', webid=web.id) }}">
+                    {% if web.name %}
+                        {{ web.name }}
+                    {% else %}
+                        <em>Untitled</em>
+                    {% endif %}
+                </a></li>
+            {% endfor %}
+        </ul>
+
+        <a href="{{ url_for('new_web_view') }}">+ New Web</a> -->
+    {% else %}
+        <!-- INSERT USER SELECT + SIGN IN FORM HERE -->
+        
+        <!-- <p>Support for anonymous webs eventually!</p> -->
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <!-- <script type="text/javascript" src="{{ url_for('static', filename='home.js') }}"></script> -->
+{% endblock %}
