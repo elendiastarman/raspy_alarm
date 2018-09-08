@@ -7,6 +7,7 @@ setup(
     install_requires=[
         'flask',
         'bcrypt',
+        'gpiozero',
         'IPython',
         'ipdb',
         'flask-shell-ipython',
