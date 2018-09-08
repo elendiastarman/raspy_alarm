@@ -27,9 +27,14 @@ class Rouser(object):
     self.alarm_name = None  # string
     self.conditions_to_stop_alarm = None  # function run with self.buttons as argument
 
+    self.shutdown = False
+
   def main_loop(self):
-    if self.conditions_to_stop_alarm and self.conditions_to_stop_alarm(self.buttons):
-      self.stop_alarm()
+    while not self.shutdown:
+      if self.conditions_to_stop_alarm and self.conditions_to_stop_alarm(self.buttons):
+        self.stop_alarm()
+
+      time.sleep(0.1)
 
   def start_alarm(self, name, conditions):
     self.alarm_name = name
@@ -40,3 +45,6 @@ class Rouser(object):
     self.alarm_name = None
     self.conditions_to_stop_alarm = None
     self.shaker.off()
+
+  def stop_loop(self):
+    self.shutdown = True
