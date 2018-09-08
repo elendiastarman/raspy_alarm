@@ -15,7 +15,7 @@ def home_view(**kwargs):
     return redirect(url_for('user_view', user=user))
 
 
-@app.route('/newweb', methods=['GET'])
+@app.route('/<username>', methods=['GET'])
 def new_web_view(**kwargs):
   context = {}
 
