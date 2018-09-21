@@ -1,4 +1,6 @@
 from threading import Thread
+from signal import signal, SIGINT
+
 from .interface import EmailInterface
 from .scheduler import Scheduler
 from .rouser import Rouser
@@ -31,6 +33,9 @@ def run():
 
   rouser_thread.start()
   scheduler_thread.start()
+
+  shutdown_handler = lambda *args: [arg.shutdown() for arg in args]
+  signal(SIGINT, shutdown_handler)
 
 
 if __name__ == '__main__':
