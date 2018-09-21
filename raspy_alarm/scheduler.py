@@ -1,5 +1,5 @@
 class Scheduler(object):
-  def __init__(self, schedule_filepath, rouser, interfaces=None):
+  def __init__(self, schedule_filepath, rouser=None, interfaces=None):
     self.schedule_filepath = schedule_filepath
     self.rouser = rouser
 

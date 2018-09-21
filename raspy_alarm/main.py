@@ -1,13 +1,32 @@
 from threading import Thread
+from .interface import EmailInterface
 from .scheduler import Scheduler
 from .rouser import Rouser
 
+try:
+  from .alarm_configuration import hardware, emails, alarms
+except ImportError as e:
+  print("No configuration found in alarm_configuration.py; using defaults. Look at alarm_configuration.example for ideas.")
+  hardware = {
+    'output_pins': [2],
+    'input_pins': [21],
+    'invert_on_off': True,
+  }
+  emails = {}
+  alarms = {}
+
 
 def run():
-  rouser = Rouser(2, [21], invert_on_off=True)
+  interfaces = []
+  for key, email_info in emails.items():
+    interface = EmailInterface(**email_info)
+    interface.startup()
+    interfaces.append(interface)
+
+  rouser = Rouser(hardware['input_pins'][0], hardware['output_pins'], invert_on_off=hardware['invert_on_off'])
   rouser_thread = Thread(target=rouser.main_loop)
 
-  scheduler = Scheduler(rouser)
+  scheduler = Scheduler('raspyalarm_schedule.json', alarms=alarms, rouser=rouser, interfaces=interfaces)
   scheduler_thread = Thread(target=scheduler.main_loop)
 
   rouser_thread.start()
