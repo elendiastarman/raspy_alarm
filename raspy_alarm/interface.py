@@ -22,9 +22,8 @@ class EmailInterface(Interface):
 
   def startup(self):
     print("Email interface started.")
-    return
 
-    self.server = smtplib.SMTP(self.info['smtp_server'], int(self.info['smtp_port']))
+    self.server = smtplib.SMTP_SSL(self.info['smtp_server'], int(self.info['smtp_port']))
     self.server.ehlo_or_helo_if_needed()
     self.server.login(self.info['address'], self.info['password'])
 
@@ -33,10 +32,10 @@ class EmailInterface(Interface):
     ip_address = so.getsockname()
 
     msg = Message()
-    msg.setcontent('ip address: {}'.format(ip_address))
+    msg.set_payload('ip address: {}'.format(ip_address))
     msg['Subject'] = 'Alarm started and ready'
     msg['From'] = self.info['address']
-    msg['To'] = self.info['main_contacts']
+    msg['To'] = ', '.join(self.info['main_contacts'])
 
     self.server.send_message(msg, from_addr=self.info['address'], to_addrs=self.info['main_contacts'])
 
