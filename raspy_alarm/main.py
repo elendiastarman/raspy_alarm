@@ -1,4 +1,5 @@
 from threading import Thread
+import IPython
 
 from interface import EmailInterface
 from scheduler import Scheduler
@@ -33,6 +34,11 @@ def run():
 
   rouser_thread.start()
   scheduler_thread.start()
+
+  IPython.embed()
+
+  rouser.shutdown()
+  scheduler.shutdown()
 
 
 if __name__ == '__main__':

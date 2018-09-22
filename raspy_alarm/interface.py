@@ -41,8 +41,10 @@ class EmailInterface(Interface):
     self.server.send_message(msg, from_addr=self.info['address'], to_addrs=self.info['main_contacts'])
 
   def check(self):
-    print("Email interface checked.")
+    # print("Email interface checked.")
+    pass
 
   def shutdown(self):
     print("Shutting down email interface.")
-    self.server.quit()
+    if self.server:
+      self.server.quit()

@@ -15,9 +15,9 @@ class Rouser(object):
     self.buttons = {}
     for pin in button_pins:
       button = gpiozero.Button(pin)
-      button.parent = self
-      button.when_pressed = lambda b: b.parent.buttons[b.pin.number]['events'].append([time.time(), None])
-      button.when_released = lambda b: b.parent.buttons[b.pin.number]['events'][-1].append(time.time())
+      # button.parent = self
+      button.when_pressed = lambda b: self.buttons[b.pin.number]['events'].append([time.time(), None])
+      button.when_released = lambda b: self.buttons[b.pin.number]['events'][-1].append(time.time())
 
       self.buttons[button.pin.number] = {
         'button': button,
@@ -27,14 +27,16 @@ class Rouser(object):
     self.alarm_name = None  # string
     self.conditions_to_stop_alarm = None  # function run with self.buttons as argument
 
-    self.shutdown = False
+    self.running = True
 
   def main_loop(self):
-    while not self.shutdown:
+    print("Rouser main loop running...")
+
+    while self.running:
       if self.conditions_to_stop_alarm and self.conditions_to_stop_alarm(self.buttons):
         self.stop_alarm()
 
-      print("Ping - rouser")
+      # print("Ping - rouser")
       time.sleep(1)
 
   def start_alarm(self, name, conditions):
@@ -49,4 +51,4 @@ class Rouser(object):
 
   def shutdown(self):
     print("Shutting down rouser.")
-    self.shutdown = True
+    self.running = False

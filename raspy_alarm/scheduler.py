@@ -11,10 +11,12 @@ class Scheduler(object):
     if interfaces:
       self.interfaces = interfaces
 
-    self.shutdown = False
+    self.running = True
 
   def main_loop(self):
-    while not self.shutdown:
+    print("Scheduler main loop running...")
+
+    while self.running:
       for interface in self.interfaces:
         interface.check()
       # self.check_email()
@@ -22,7 +24,7 @@ class Scheduler(object):
 
       # if something:
       #   self.rouser.start_alarm()
-      print("Ping - scheduler")
+      # print("Ping - scheduler")
       time.sleep(1)
 
   def add_interface(self):
@@ -34,4 +36,4 @@ class Scheduler(object):
       interface.shutdown()
 
     print("Shutting down scheduler.")
-    self.shutdown = True
+    self.running = False
