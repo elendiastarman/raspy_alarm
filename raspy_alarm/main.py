@@ -1,13 +1,13 @@
 from threading import Thread
-from signal import signal, SIGINT
 
-from .interface import EmailInterface
-from .scheduler import Scheduler
-from .rouser import Rouser
+from interface import EmailInterface
+from scheduler import Scheduler
+from rouser import Rouser
 
 try:
-  from .alarm_configuration import hardware, emails, alarms
+  from alarm_configuration import hardware, emails, alarms
 except ImportError as e:
+  print("Error:", str(e))
   print("No configuration found in alarm_configuration.py; using defaults. Look at alarm_configuration.example for ideas.")
   hardware = {
     'output_pins': [2],
@@ -33,9 +33,6 @@ def run():
 
   rouser_thread.start()
   scheduler_thread.start()
-
-  shutdown_handler = lambda *args: [arg.shutdown() for arg in args]
-  signal(SIGINT, shutdown_handler)
 
 
 if __name__ == '__main__':

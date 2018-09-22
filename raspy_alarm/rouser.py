@@ -31,11 +31,11 @@ class Rouser(object):
 
   def main_loop(self):
     while not self.shutdown:
-      # if self.conditions_to_stop_alarm and self.conditions_to_stop_alarm(self.buttons):
-      #   self.stop_alarm()
+      if self.conditions_to_stop_alarm and self.conditions_to_stop_alarm(self.buttons):
+        self.stop_alarm()
 
       print("Ping - rouser")
-      time.sleep(0.1)
+      time.sleep(1)
 
   def start_alarm(self, name, conditions):
     self.alarm_name = name

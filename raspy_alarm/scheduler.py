@@ -14,7 +14,9 @@ class Scheduler(object):
     self.shutdown = False
 
   def main_loop(self):
-    while self.shutdown:
+    while not self.shutdown:
+      for interface in self.interfaces:
+        interface.check()
       # self.check_email()
       # something = self.check_schedule()
 
