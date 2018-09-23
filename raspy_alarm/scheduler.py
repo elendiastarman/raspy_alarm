@@ -10,6 +10,8 @@ class Scheduler(object):
     self.interfaces = []
     if interfaces:
       self.interfaces = interfaces
+      for interface in self.interfaces:
+        interface.scheduler = self
 
     self.running = True
 
@@ -18,12 +20,9 @@ class Scheduler(object):
 
     while self.running:
       for interface in self.interfaces:
+        # The interface is responsible for using methods on the scheduler to do stuff
         interface.check()
-      # self.check_email()
-      # something = self.check_schedule()
 
-      # if something:
-      #   self.rouser.start_alarm()
       # print("Ping - scheduler")
       time.sleep(1)
 
