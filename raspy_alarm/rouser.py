@@ -51,4 +51,5 @@ class Rouser(object):
 
   def shutdown(self):
     print("Shutting down rouser.")
+    self.stop_alarm()
     self.running = False

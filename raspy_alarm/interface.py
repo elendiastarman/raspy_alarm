@@ -5,6 +5,7 @@ import smtplib
 import socket
 import email
 import json
+import os
 
 
 class Interface(object):
@@ -17,8 +18,8 @@ class Interface(object):
   def shutdown(self):
     raise NotImplemented()
 
-  def _clean_address(self):
-    parts = self.email_address.split('@')
+  def _clean_address(self, email_address):
+    parts = email_address.split('@')
     return parts[0] + '_' + parts[1].split('.')[0]
 
 
@@ -47,11 +48,11 @@ class EmailInterface(Interface):
 
   def _read_email(self):
     contents = None
-    filepath = 'data/{}'.format(self.clean_address), 'w'
+    filepath = os.path.join(os.getcwd(), 'data', self.clean_address)
 
     try:
       with open(filepath, 'r') as file:
-        file.seek()
+        file.seek(0)
         contents = file.read()
     except FileNotFoundError as e:
       pass
@@ -61,15 +62,20 @@ class EmailInterface(Interface):
     else:
       data = {'latest_email': 0}
 
+    self.imap_server.select('INBOX')
     response, email_ids = self.imap_server.search(None, 'ALL')
     if response != 'OK':
       print('COULD NOT READ {}'.format(self.email_address))
       return
 
-    email_ids = str(email_ids[0], encoding='UTF-8').split()
+    email_ids = sorted(map(int, email_ids[0].decode('utf-8').split()))
+    print('email_ids:', email_ids)
 
     for email_id in email_ids:
-      res, dat = self.imap_server.fetch(str(email_id))
+      if email_id < data['latest_email']:
+        continue
+
+      res, dat = self.imap_server.fetch(str(email_id), '(RFC822)')
       if res != 'OK':
         print('COULD NOT READ EMAIL {}'.format(email_id))
       else:
@@ -77,9 +83,9 @@ class EmailInterface(Interface):
         self._handle_email(message)
 
     if email_ids:
-      data['latest_email'] = int(email_ids[-1]) + 1
+      data['latest_email'] = email_ids[-1] + 1
 
-    with open(filepath) as file:
+    with open(filepath, 'w') as file:
       file.write(json.dumps(data))
 
   def _send_email(self, subject, content, from_addr=None, to_addrs=None):
