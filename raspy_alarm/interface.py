@@ -41,13 +41,19 @@ class EmailInterface(Interface):
     print('Email to: {}'.format(email['To']))
     print('Email subject: {}'.format(email['Subject']))
 
-    from_addr = re.search('<(.*)>', email['From']).groups()
+    from_addr = re.search('<(.*)>', email['From']).groups()[0]
+    send_acknowledgement = False
 
     if self.scheduler:
       if email['Subject'].lower() == 'wake up now' and from_addr in self.info['wakeup_whitelist']:
-        self.scheduler.rouser.start_alarm('wake up now', lambda _: False)
+        self.scheduler.rouser.start_alarm('wake up now', [[lambda t, b: False]])
+        send_acknowledgement = True
       elif email['Subject'].lower() == 'cancel alarm' and from_addr in self.info['wakeup_whitelist']:
         self.scheduler.rouser.stop_alarm()
+        send_acknowledgement = True
+
+    if send_acknowledgement == True:
+      self._send_email('Re: ' + email['Subject'], 'acknowledged', self.email_address, [from_addr])
 
   def _read_email(self):
     contents = None
