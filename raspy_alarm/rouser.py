@@ -9,8 +9,8 @@ class Rouser(object):
       self.shaker.on, self.shaker.off = self.shaker.off, self.shaker.on  # maybe the shaker vibrates when it's "off"
     self.shaker.off()
 
-    self.beep_on_length = beep_on_length
-    self.beep_off_length = beep_off_length
+    self.default_beep_on_length = beep_on_length
+    self.default_beep_off_length = beep_off_length
 
     self.buttons = {}
     for pin in button_pins:
@@ -39,11 +39,19 @@ class Rouser(object):
       # print("Ping - rouser")
       time.sleep(1)
 
-  def start_alarm(self, name, conditions):
+  def start_alarm(self, name, conditions=None):
     print("Starting alarm {}...".format(name))
     self.alarm_name = name
+    beep_off_length = self.default_beep_off_length
+    beep_on_length = self.default_beep_on_length
+
+    if self.alarm_name in self.alarms:
+      conditions = conditions or self.alarms[self.alarm_name].get('conditions', None)
+      beep_off_length = self.alarms[self.alarm_name].get('off_time', self.default_beep_off_length)
+      beep_on_length = self.alarms[self.alarm_name].get('on_time', self.default_beep_on_length)
+
     self.conditions_to_stop_alarm = conditions
-    self.shaker.beep(self.beep_off_length, self.beep_on_length)
+    self.shaker.beep(beep_off_length, beep_on_length)
 
   def stop_alarm(self):
     print("Stopping alarm {}...".format(self.alarm_name))
