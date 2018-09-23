@@ -40,11 +40,13 @@ class Rouser(object):
       time.sleep(1)
 
   def start_alarm(self, name, conditions):
+    print("Starting alarm {}...".format(name))
     self.alarm_name = name
     self.conditions_to_stop_alarm = conditions
     self.shaker.beep(self.beep_off_length, self.beep_on_length)
 
   def stop_alarm(self):
+    print("Stopping alarm {}...".format(self.alarm_name))
     self.alarm_name = None
     self.conditions_to_stop_alarm = None
     self.shaker.off()

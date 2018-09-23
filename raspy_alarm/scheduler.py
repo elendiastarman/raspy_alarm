@@ -8,10 +8,8 @@ class Scheduler(object):
     self.alarms = alarms
 
     self.interfaces = []
-    if interfaces:
-      self.interfaces = interfaces
-      for interface in self.interfaces:
-        interface.scheduler = self
+    for interface in interfaces or self.interfaces:
+      self.add_interface(interface)
 
     self.running = True
 
@@ -26,8 +24,9 @@ class Scheduler(object):
       # print("Ping - scheduler")
       time.sleep(1)
 
-  def add_interface(self):
-    pass
+  def add_interface(self, interface):
+    interface.scheduler = self
+    self.interfaces.append(interface)
 
   def shutdown(self):
     print("Shutting down interfaces.")

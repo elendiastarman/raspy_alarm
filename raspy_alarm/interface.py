@@ -6,6 +6,7 @@ import socket
 import email
 import json
 import os
+import re
 
 
 class Interface(object):
@@ -40,10 +41,12 @@ class EmailInterface(Interface):
     print('Email to: {}'.format(email['To']))
     print('Email subject: {}'.format(email['Subject']))
 
+    from_addr = re.search('<(.*)>', email['From']).groups()
+
     if self.scheduler:
-      if email['Subject'].lower() == 'wake up now' and email['From'] in self.info['wakeup_whitelist']:
+      if email['Subject'].lower() == 'wake up now' and from_addr in self.info['wakeup_whitelist']:
         self.scheduler.rouser.start_alarm('wake up now', lambda _: False)
-      elif email['Subject'].lower() == 'cancel alarm' and email['From'] in self.info['wakeup_whitelist']:
+      elif email['Subject'].lower() == 'cancel alarm' and from_addr in self.info['wakeup_whitelist']:
         self.scheduler.rouser.stop_alarm()
 
   def _read_email(self):
@@ -124,8 +127,8 @@ class EmailInterface(Interface):
     self._read_email()
 
   def shutdown(self):
-    print("Shutting down email interface.")
+    print("  Shutting down email interface.")
     if self.smtp_server:
       self.smtp_server.quit()
     if self.imap_server:
-      self.imap_server.close()
+      self.imap_server.logout()
