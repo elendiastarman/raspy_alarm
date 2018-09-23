@@ -72,7 +72,7 @@ class EmailInterface(Interface):
       return
 
     email_ids = sorted(map(int, email_ids[0].decode('utf-8').split()))
-    print('email_ids:', email_ids)
+    # print('email_ids:', email_ids)
 
     for email_id in email_ids:
       if email_id < data['latest_email']:

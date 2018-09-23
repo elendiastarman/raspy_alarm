@@ -34,11 +34,28 @@ class Rouser(object):
     print("Rouser main loop running...")
 
     while self.running:
-      if self.conditions_to_stop_alarm and self.conditions_to_stop_alarm(self.buttons):
-        self.stop_alarm()
-
       # print("Ping - rouser")
       time.sleep(1)
+
+      if self.conditions_to_stop_alarm:
+        for or_cond in self.conditions_to_stop_alarm:
+          for and_cond in or_cond:
+            result = False
+            try:
+              result = and_cond(time.time(), self.buttons)
+            except Exception as e:
+              print("Error evaluating condition:", str(e))
+
+            if not result:
+              break
+
+          else:
+            break
+
+        else:
+          continue
+
+        self.stop_alarm()
 
   def start_alarm(self, name, conditions=None):
     print("Starting alarm {}...".format(name))

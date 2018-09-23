@@ -26,7 +26,7 @@ def run():
     interface.startup()
     interfaces.append(interface)
 
-  rouser = Rouser(hardware['input_pins'][0], hardware['output_pins'], invert_on_off=hardware['invert_on_off'], alarms=alarms)
+  rouser = Rouser(hardware['output_pins'][0], hardware['input_pins'], invert_on_off=hardware['invert_on_off'], alarms=alarms)
   rouser_thread = Thread(target=rouser.main_loop)
 
   scheduler = Scheduler('raspyalarm_schedule.json', rouser=rouser, interfaces=interfaces)
