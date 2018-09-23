@@ -3,7 +3,7 @@ import gpiozero
 
 
 class Rouser(object):
-  def __init__(self, shaker_pin, button_pins, invert_on_off=False, beep_on_length=0.5, beep_off_length=0.5):
+  def __init__(self, shaker_pin, button_pins, invert_on_off=False, beep_on_length=0.5, beep_off_length=0.5, alarms=None):
     self.shaker = gpiozero.Buzzer(shaker_pin)
     if invert_on_off:
       self.shaker.on, self.shaker.off = self.shaker.off, self.shaker.on  # maybe the shaker vibrates when it's "off"
@@ -24,6 +24,7 @@ class Rouser(object):
         'events': [],
       }
 
+    self.alarms = alarms or {}
     self.alarm_name = None  # string
     self.conditions_to_stop_alarm = None  # function run with self.buttons as argument
 

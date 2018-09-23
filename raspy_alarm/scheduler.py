@@ -5,7 +5,6 @@ class Scheduler(object):
   def __init__(self, schedule_filepath, alarms=None, rouser=None, interfaces=None):
     self.schedule_filepath = schedule_filepath
     self.rouser = rouser
-    self.alarms = alarms
 
     self.interfaces = []
     for interface in interfaces or self.interfaces:
