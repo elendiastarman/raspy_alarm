@@ -36,24 +36,43 @@ class EmailInterface(Interface):
     self.clean_address = self._clean_address(self.email_address)
     self.main_contacts = self.info['main_contacts']
 
+    self.previous_sender = None
+
   def _handle_email(self, email):
     print('Email from: {}'.format(email['From']))
     print('Email to: {}'.format(email['To']))
     print('Email subject: {}'.format(email['Subject']))
 
-    from_addr = re.search('<(.*)>', email['From']).groups()[0]
+    sender = re.search('<(.*)>', email['From']).groups()[0]
+    subject = email['Subject'].lower()
     send_acknowledgement = False
 
-    if self.scheduler:
-      if email['Subject'].lower() == 'wake up now' and from_addr in self.info['wakeup_whitelist']:
-        self.scheduler.rouser.start_alarm('wake up now', [[lambda t, b: False]])
-        send_acknowledgement = True
-      elif email['Subject'].lower() == 'cancel alarm' and from_addr in self.info['wakeup_whitelist']:
-        self.scheduler.rouser.stop_alarm()
-        send_acknowledgement = True
+    if subject == 'help' and sender in self.info['wakeup_whitelist'] + self.info['edit_whitelist']:
+      content = "These are the available commands (commands must be exactly as shown, though with any capitalization):\n\n"
+      content += "help: Respond with this very list of available commands.\n"
+      content += "wake up now: Wake up the target immediately.\n"
+      content += "cancel alarm: Stop the alarm.\n"
 
-    if send_acknowledgement == True:
-      self._send_email('Re: ' + email['Subject'], 'acknowledged', self.email_address, [from_addr])
+      if sender in self.info['edit_whitelist']:
+        pass
+
+      content += "\nAs always, feel free to email any of these for more information: {}".format(', '.join(self.main_contacts))
+      self._send_email('Re: ' + email['Subject'], content, self.email_address, [sender])
+
+    if subject == 'wake up now' and sender in self.info['wakeup_whitelist']:
+      self.scheduler.rouser.start_alarm('wake up now')
+      self.previous_sender = sender
+      recipients = list(set(self.main_contacts + [sender]))
+      self._send_email('Re: ' + email['Subject'], 'Emergency alarm started.', self.email_address, recipients)
+
+    elif subject == 'cancel alarm' and sender in self.info['wakeup_whitelist']:
+      self.scheduler.rouser.stop_alarm()
+      recipients = list(set(self.main_contacts + [self.previous_sender, sender]))
+      self.previous_sender = None
+      self._send_email('Re: ' + email['Subject'], 'Emergency alarm canceled.', self.email_address, recipients)
+
+    if send_acknowledgement:
+      self._send_email('Re: ' + email['Subject'], 'acknowledged', self.email_address, [sender])
 
   def _read_email(self):
     contents = None
@@ -78,7 +97,6 @@ class EmailInterface(Interface):
       return
 
     email_ids = sorted(map(int, email_ids[0].decode('utf-8').split()))
-    # print('email_ids:', email_ids)
 
     for email_id in email_ids:
       if email_id < data['latest_email']:
