@@ -19,7 +19,7 @@ class Rouser(object):
     for pin in button_pins:
       button = gpiozero.Button(pin)
       # button.parent = self
-      button.when_pressed = lambda b: self.buttons[b.pin.number]['events'].append([time.time(), None])
+      button.when_pressed = lambda b: self.buttons[b.pin.number]['events'].append([time.time()])
       button.when_released = lambda b: self.buttons[b.pin.number]['events'][-1].append(time.time())
 
       self.buttons[button.pin.number] = {
@@ -75,15 +75,15 @@ class Rouser(object):
         if self.alarm['snooze_time'] + self.alarm['snooze_duration'] < time.time():
           self.resume_alarm()
 
-      if self.alarm['shake_time'] and self['conditions_to_snooze_alarm']:
-        if self._evaluate_conditions(self['conditions_to_snooze_alarm']):
+      if self.alarm['shake_time'] and self.alarm['conditions_to_snooze_alarm']:
+        if self._evaluate_conditions(self.alarm['conditions_to_snooze_alarm']):
           self.snooze_alarm()
 
-      if self['conditions_to_stop_alarm']:
-        if self._evaluate_conditions(self['conditions_to_stop_alarm']):
+      if self.alarm['conditions_to_stop_alarm']:
+        if self._evaluate_conditions(self.alarm['conditions_to_stop_alarm']):
           self.stop_alarm()
 
-      if self.alarm['shake_time'] + MAX_SHAKE_DURATION < time.time():
+      if self.alarm['shake_time'] and self.alarm['shake_time'] + MAX_SHAKE_DURATION < time.time():
         self.stop_alarm()
 
   def start_alarm(self, name, stop_conditions=None, snooze_conditions=None, beep_off_length=None, beep_on_length=None, snooze_duration=None):
@@ -91,18 +91,22 @@ class Rouser(object):
     self.alarm['name'] = name
     self.alarm['conditions_to_stop_alarm'] = stop_conditions
     self.alarm['conditions_to_snooze_alarm'] = snooze_conditions
-    self.alarm['beep_off_length'] = beep_off_length or self.default_beep_off_length
-    self.alarm['beep_on_length'] = beep_on_length or self.default_beep_on_length
-    self.alarm['snooze_duration'] = snooze_duration or self.default_snooze_duration
+    self.alarm['beep_off_length'] = beep_off_length
+    self.alarm['beep_on_length'] = beep_on_length
+    self.alarm['snooze_duration'] = snooze_duration
     self.alarm['shake_time'] = None
     self.alarm['snooze_time'] = None
 
     if self.alarm['name'] in self.alarms:
-      self.alarm['stop_conditions'] = self.alarm['stop_conditions'] or self.alarms[self.alarm['name']].get('stop_conditions', None)
-      self.alarm['snooze_conditions'] = self.alarm['snooze_conditions'] or self.alarms[self.alarm['name']].get('snooze_conditions', None)
+      self.alarm['conditions_to_stop_alarm'] = self.alarm['conditions_to_stop_alarm'] or self.alarms[self.alarm['name']].get('stop_conditions', None)
+      self.alarm['conditions_to_snooze_alarm'] = self.alarm['conditions_to_snooze_alarm'] or self.alarms[self.alarm['name']].get('snooze_conditions', None)
       self.alarm['beep_off_length'] = self.alarm['beep_off_length'] or self.alarms[self.alarm['name']].get('off_time', None)
       self.alarm['beep_on_length'] = self.alarm['beep_on_length'] or self.alarms[self.alarm['name']].get('on_time', None)
       self.alarm['snooze_duration'] = self.alarm['snooze_duration'] or self.alarms[self.alarm['name']].get('snooze_time', None)
+
+    self.alarm['beep_off_length'] = self.alarm['beep_off_length'] or self.default_beep_off_length
+    self.alarm['beep_on_length'] = self.alarm['beep_on_length'] or self.default_beep_on_length
+    self.alarm['snooze_duration'] = self.alarm['snooze_duration'] or self.default_snooze_duration
 
     self.resume_alarm()
 
