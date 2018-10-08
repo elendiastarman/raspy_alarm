@@ -8,8 +8,10 @@ setup(
         'flask',
         'bcrypt',
         'gpiozero',
-        'IPython',
+        'ipython',
         'ipdb',
         'flask-shell-ipython',
+        'dateutil',
+        'docopt',
     ],
 )

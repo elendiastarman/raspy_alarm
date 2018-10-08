@@ -1,10 +1,12 @@
 from email.message import Message
+from threading import Thread
 
 import imaplib
 import smtplib
 import socket
 import email
 import json
+import time
 import os
 import re
 
@@ -32,6 +34,9 @@ class EmailInterface(Interface):
     self.smtp_server = None
     self.imap_server = None
 
+    self.ip_address = None
+    self.ip_check_thread = None
+
     self.email_address = self.info['address']
     self.clean_address = self._clean_address(self.email_address)
     self.main_contacts = self.info['main_contacts']
@@ -48,9 +53,9 @@ class EmailInterface(Interface):
     send_acknowledgement = False
 
     if subject == 'help' and sender in self.info['wakeup_whitelist'] + self.info['edit_whitelist']:
-      content = "These are the available commands (commands must be exactly as shown, though with any capitalization):\n\n"
+      content = "These are the available commands (commands must be exactly as shown, except capitalization doesn't matter):\n\n"
       content += "help: Respond with this very list of available commands.\n"
-      content += "wake up now: Wake up the target immediately.\n"
+      content += "wake up now: Wake up the sleeper immediately.\n"
       content += "cancel alarm: Stop the alarm.\n"
 
       if sender in self.info['edit_whitelist']:
@@ -129,6 +134,24 @@ class EmailInterface(Interface):
 
     self.smtp_server.send_message(msg, from_addr=from_addr, to_addrs=to_addrs)
 
+  def _ip_check_loop(self):
+    so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    so.connect(('8.8.8.8', 80))
+
+    while 1:
+      ip_address = so.getsockname()
+
+      if ip_address != self.ip_address:
+        if self.ip_address is None:
+          self._send_email('Alarm started and ready', 'ip address: {}'.format(ip_address))
+
+        elif self.ip_address[0] != ip_address[0]:
+          self._send_email('Alarm IP changed', 'ip address: {}'.format(ip_address))
+
+        self.ip_address = ip_address
+
+      time.sleep(60 * 60)
+
   def startup(self):
     print("Email interface started.")
 
@@ -140,19 +163,18 @@ class EmailInterface(Interface):
     self.imap_server.login(self.info['address'], self.info['password'])
     self.imap_server.select('INBOX')
 
-    so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    so.connect(('8.8.8.8', 80))
-    ip_address = so.getsockname()
-
-    self._send_email('Alarm started and ready', 'ip address: {}'.format(ip_address))
+    self.ip_check_thread = Thread(target=self._ip_check_loop, daemon=True)
 
   def check(self):
     # print("Email interface checked.")
-    self._read_email()
+    if self.smtp_server:
+      self._read_email()
 
   def shutdown(self):
     print("  Shutting down email interface.")
     if self.smtp_server:
       self.smtp_server.quit()
+      self.smtp_server = None
     if self.imap_server:
       self.imap_server.logout()
+      self.imap_server = None
