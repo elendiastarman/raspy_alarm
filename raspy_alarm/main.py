@@ -35,7 +35,7 @@ rouser = None
 scheduler = None
 
 
-def shutdown(signum, frame):
+def shutdown(signum=None, frame=None):
   global rouser, scheduler
 
   if rouser:

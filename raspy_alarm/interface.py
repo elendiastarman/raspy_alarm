@@ -164,6 +164,7 @@ class EmailInterface(Interface):
     self.imap_server.select('INBOX')
 
     self.ip_check_thread = Thread(target=self._ip_check_loop, daemon=True)
+    self.ip_check_thread.start()
 
   def check(self):
     # print("Email interface checked.")
