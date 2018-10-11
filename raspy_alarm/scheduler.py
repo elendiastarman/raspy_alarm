@@ -1,4 +1,8 @@
+import datetime
+import rrule
 import time
+import json
+import os
 
 
 class Scheduler(object):
@@ -11,6 +15,47 @@ class Scheduler(object):
       self.add_interface(interface)
 
     self.running = True
+
+  def _make_rrule(self, data):
+    if 'freq' in data:
+      if isinstance(data['freq'], str):
+        data['freq'] = rrule.FREQNAMES.index(data['freq'].upper())
+    else:
+      data['freq'] = rrule.DAILY
+
+    now = datetime.datetime.now()
+    if 'dtstart' in data:
+      data['dtstart'] = now.replace(**data['dtstart'])
+    else:
+      data['dtstart'] = now
+
+    return rrule.rrule(**data)
+
+  def _check_schedule(self):
+    contents = None
+    filepath = os.path.join(os.getcwd(), 'data', self.schedule_filepath)
+
+    try:
+      with open(filepath, 'r') as file:
+        contents = file.read()
+    except FileNotFoundError as e:
+      pass
+
+    if not contents:
+      return []
+
+    parsed = json.loads(contents)
+
+    for rrset_config in parsed.get('rrulesets', []):
+      rset = rrule.rruleset()
+
+      for rrule_config in rrset_config.get('rrules', []):
+        rule = self._make_rrule(rrule_config)
+        rset.rrule(rule)
+
+      for exrule_config in rrset_config.get('exrules', []):
+        rule = self._make_rrule(exrule_config)
+        rset.exrule(rule)
 
   def main_loop(self):
     print("Scheduler main loop running...")

@@ -85,7 +85,6 @@ class EmailInterface(Interface):
 
     try:
       with open(filepath, 'r') as file:
-        file.seek(0)
         contents = file.read()
     except FileNotFoundError as e:
       pass

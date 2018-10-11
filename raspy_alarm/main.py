@@ -60,7 +60,7 @@ def run():
   rouser = Rouser(hardware['output_pins'][0], hardware['input_pins'], invert_on_off=hardware['invert_on_off'], alarms=alarms)
   rouser_thread = Thread(target=rouser.main_loop)
 
-  scheduler = Scheduler('raspyalarm_schedule.json', rouser=rouser, interfaces=interfaces)
+  scheduler = Scheduler('schedule_rules.json', rouser=rouser, interfaces=interfaces)
   scheduler_thread = Thread(target=scheduler.main_loop)
 
   rouser_thread.start()
