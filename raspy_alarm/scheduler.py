@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import rrule
 import time
 import json
@@ -9,6 +10,9 @@ class Scheduler(object):
   def __init__(self, schedule_filepath, alarms=None, rouser=None, interfaces=None):
     self.schedule_filepath = schedule_filepath
     self.rouser = rouser
+
+    self.schedule_hash = None
+    self.cached_rrsets = None
 
     self.interfaces = []
     for interface in interfaces or self.interfaces:
@@ -43,6 +47,12 @@ class Scheduler(object):
 
     if not contents:
       return []
+
+    schedule_hash = hashlib.sha1(bytes(contents, encoding='utf-8')).hexdigest()
+    if schedule_hash != self.schedule_hash:
+      self.schedule_hash
+    else:
+      return self.cached_rrsets  # ?
 
     parsed = json.loads(contents)
 
