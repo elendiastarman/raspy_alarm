@@ -1,16 +1,17 @@
+from dateutil import rrule
+
 import datetime
 import hashlib
-import rrule
 import time
 import json
 import os
 
 
-FREQUENCIES = {'yearly': rrule.YEARLY, 'monthly': rrule.MONTHLY, 'daily': rrule.DAILY, 'hourly': rrule.HOURLY, 'minutely': rrule.MINUTELY, 'secondly': rrule.SECONDLY}
+FREQUENCIES = {'yearly': rrule.YEARLY, 'monthly': rrule.MONTHLY, 'weekly': rrule.WEEKLY, 'daily': rrule.DAILY, 'hourly': rrule.HOURLY, 'minutely': rrule.MINUTELY, 'secondly': rrule.SECONDLY}
 MONTH_NAMES = ['jan', 'january', 'feb', 'february', 'mar', 'march', 'apr', 'april', 'jun', 'june', 'jul', 'july', 'sept', 'september', 'oct', 'october', 'nov', 'november', 'dec', 'december']
-MONTHS = {index // 2: name for index, name in enumerate(MONTH_NAMES)}
+MONTHS = {name: index // 2 for index, name in enumerate(MONTH_NAMES)}
 WEEKDAY_NAMES = ['m', 'mo', 'mon', 'monday', 't', 'tu', 'tue', 'tuesday', 'w', 'we', 'wed', 'wednesday', 'r', 'th', 'thu', 'thursday', 'f', 'fr', 'fri', 'friday', 's', 'sa', 'sat', 'saturday', 'u', 'su', 'sun', 'sunday']
-WEEKDAYS = {index // 4: name for index, name in enumerate(WEEKDAY_NAMES)}
+WEEKDAYS = {name: index // 4 for index, name in enumerate(WEEKDAY_NAMES)}
 
 
 class Scheduler(object):
@@ -19,8 +20,8 @@ class Scheduler(object):
     self.rouser = rouser
 
     self.schedule_hash = None
-    self.cached_rrsets = None
-    self.cached_exceptions = None
+    self.cached_rrsets = []
+    self.cached_exceptions = []
 
     self.interfaces = []
     for interface in interfaces or self.interfaces:
@@ -44,7 +45,7 @@ class Scheduler(object):
         data['bymonth'] = [data['bymonth']]
 
       for index, item in enumerate(data['bymonth']):
-        if isinstance(data['bymonth'], str):
+        if isinstance(item, str):
           data['bymonth'][index] = MONTHS[item.lower()]
 
     if 'byweekday' in data:
@@ -52,10 +53,9 @@ class Scheduler(object):
         data['byweekday'] = [data['byweekday']]
 
       for index, item in enumerate(data['byweekday']):
-        if isinstance(data['byweekday'], str):
+        if isinstance(item, str):
           data['byweekday'][index] = WEEKDAYS[item.lower()]
 
-    data.setdefault('byminute', 0)
     data.setdefault('bysecond', 0)
 
     now = datetime.datetime.now()
@@ -68,7 +68,7 @@ class Scheduler(object):
 
   def _check_schedule(self):
     contents = None
-    filepath = os.path.join(os.getcwd(), 'data', self.schedule_filepath)
+    filepath = os.path.join(os.getcwd(), self.schedule_filepath)
 
     try:
       with open(filepath, 'r') as file:
@@ -90,7 +90,7 @@ class Scheduler(object):
     parsed = json.loads(contents)
     now = self.now
 
-    for rrset_config in parsed.get('rrulesets', []):
+    for rrset_config in parsed.get('rrule_sets', []):
       rset = rrule.rruleset()
 
       for rrule_config in rrset_config.get('rrules', []):
@@ -117,7 +117,7 @@ class Scheduler(object):
       self.cached_rrsets.append(alarm_config)
 
     for exdate_config in parsed.get('exceptions', []):
-      date = now.replace(**rdate_config)
+      date = now.replace(**exdate_config)
       self.cached_exceptions.append(date)
 
   def _calculate_datetimes(self, threshold):
@@ -125,10 +125,10 @@ class Scheduler(object):
 
     for alarm_rule in self.cached_rrsets:
       rrule_set = alarm_rule['rrule_set']
-      temp_dt = rrule_set(threshold)
+      temp_dt = rrule_set.after(threshold)
 
       while temp_dt in self.cached_exceptions:
-        temp_dt = rrule_set(temp_dt)
+        temp_dt = rrule_set.after(temp_dt)
 
       datetimes.append(dict(
         datetime=temp_dt,
@@ -150,15 +150,16 @@ class Scheduler(object):
       self._check_schedule()
 
       now = self.now
-      threshold = now - datetime.timedelta(seconds=5)
+      threshold = now - datetime.timedelta(seconds=1)
       datetimes = sorted(self._calculate_datetimes(threshold), key=lambda _: _['datetime'])
 
-      dt = datetimes[0]['datetime']
-      params = datetimes[0]['params']
-      name = params.get('name', None)
+      if datetimes:
+        dt = datetimes[0]['datetime']
+        params = datetimes[0]['params']
+        name = params.get('name', None)
 
-      if dt < now and (name is None or name != self.rouser.alarm['name']):
-        self.rouser.start_alarm(**params)
+        if now > dt - datetime.timedelta(seconds=5) and (name is None or name != self.rouser.alarm['name']):
+          self.rouser.start_alarm(**params)
 
       time.sleep(1)
 
