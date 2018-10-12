@@ -11,7 +11,7 @@ setup(
         'ipython',
         'ipdb',
         'flask-shell-ipython',
-        'dateutil',
+        'python-dateutil',
         'docopt',
     ],
 )

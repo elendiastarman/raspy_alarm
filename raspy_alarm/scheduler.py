@@ -6,6 +6,13 @@ import json
 import os
 
 
+FREQUENCIES = {'yearly': rrule.YEARLY, 'monthly': rrule.MONTHLY, 'daily': rrule.DAILY, 'hourly': rrule.HOURLY, 'minutely': rrule.MINUTELY, 'secondly': rrule.SECONDLY}
+MONTH_NAMES = ['jan', 'january', 'feb', 'february', 'mar', 'march', 'apr', 'april', 'jun', 'june', 'jul', 'july', 'sept', 'september', 'oct', 'october', 'nov', 'november', 'dec', 'december']
+MONTHS = {index // 2: name for index, name in enumerate(MONTH_NAMES)}
+WEEKDAY_NAMES = ['m', 'mo', 'mon', 'monday', 't', 'tu', 'tue', 'tuesday', 'w', 'we', 'wed', 'wednesday', 'r', 'th', 'thu', 'thursday', 'f', 'fr', 'fri', 'friday', 's', 'sa', 'sat', 'saturday', 'u', 'su', 'sun', 'sunday']
+WEEKDAYS = {index // 4: name for index, name in enumerate(WEEKDAY_NAMES)}
+
+
 class Scheduler(object):
   def __init__(self, schedule_filepath, alarms=None, rouser=None, interfaces=None):
     self.schedule_filepath = schedule_filepath
@@ -21,12 +28,35 @@ class Scheduler(object):
 
     self.running = True
 
+  @property
+  def now(self):
+    return datetime.datetime.now().replace(microsecond=0)
+
   def _make_rrule(self, data):
     if 'freq' in data:
       if isinstance(data['freq'], str):
-        data['freq'] = rrule.FREQNAMES.index(data['freq'].upper())
+        data['freq'] = FREQUENCIES[data['freq'].lower()]
     else:
       data['freq'] = rrule.DAILY
+
+    if 'bymonth' in data:
+      if isinstance(data['bymonth'], (str, int)):
+        data['bymonth'] = [data['bymonth']]
+
+      for index, item in enumerate(data['bymonth']):
+        if isinstance(data['bymonth'], str):
+          data['bymonth'][index] = MONTHS[item.lower()]
+
+    if 'byweekday' in data:
+      if isinstance(data['byweekday'], (str, int)):
+        data['byweekday'] = [data['byweekday']]
+
+      for index, item in enumerate(data['byweekday']):
+        if isinstance(data['byweekday'], str):
+          data['byweekday'][index] = WEEKDAYS[item.lower()]
+
+    data.setdefault('byminute', 0)
+    data.setdefault('bysecond', 0)
 
     now = datetime.datetime.now()
     if 'dtstart' in data:
@@ -58,7 +88,7 @@ class Scheduler(object):
     self.cached_exceptions = []
 
     parsed = json.loads(contents)
-    now = datetime.datetime.now()
+    now = self.now
 
     for rrset_config in parsed.get('rrulesets', []):
       rset = rrule.rruleset()
@@ -119,7 +149,7 @@ class Scheduler(object):
 
       self._check_schedule()
 
-      now = datetime.datetime.now()
+      now = self.now
       threshold = now - datetime.timedelta(seconds=5)
       datetimes = sorted(self._calculate_datetimes(threshold), key=lambda _: _['datetime'])
 
