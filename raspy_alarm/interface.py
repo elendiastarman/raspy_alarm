@@ -84,8 +84,10 @@ class EmailInterface(Interface):
       self._send_email('Re: ' + email['Subject'], 'Emergency alarm canceled.', self.email_address, recipients)
 
     elif subject == 'schedule':
-      content = "Upcoming alarm times:\n\n"
-      content += json.dumps(self.scheduler.calculate_datetimes())
+      content = "Current time:{}\n".format(self.scheduler.now)
+      content += "Upcoming alarm times:\n\n"
+      content += json.dumps(self.scheduler.calculate_datetimes(), indent=2, default=str)
+      self._send_email('Re: ' + email['Subject'], content, self.email_address, [sender])
 
     if send_acknowledgement:
       self._send_email('Re: ' + email['Subject'], 'acknowledged', self.email_address, [sender])
@@ -135,6 +137,8 @@ class EmailInterface(Interface):
       from_addr = self.email_address
     if to_addrs is None:
       to_addrs = self.main_contacts
+
+    print("Content: ", content)
 
     msg = Message()
     msg.set_payload(content)

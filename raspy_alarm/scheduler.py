@@ -38,7 +38,7 @@ class Scheduler(object):
 
   @property
   def EPOCH(self):
-    return datetime.datetime(2018, 1, 1, 0, 0, 0, tz=self.timezone)
+    return datetime.datetime(2018, 1, 1, 0, 0, 0, tzinfo=self.timezone)
 
   def _make_rrule(self, data):
     if 'freq' in data:
@@ -62,11 +62,12 @@ class Scheduler(object):
       for index, item in enumerate(data['byweekday']):
         if isinstance(item, str):
           data['byweekday'][index] = WEEKDAYS[item.lower()]
+
         elif isinstance(item, list) and len(item) == 2:
           if isinstance(item[0], str):
             item[0] = WEEKDAYS[item[0].lower()]
 
-          item = WEEKDAYNO[item[0]](item[1])
+          data['byweekday'][index] = WEEKDAYNO[item[0]](item[1])
 
     data.setdefault('bysecond', 0)
 
@@ -145,7 +146,10 @@ class Scheduler(object):
       date = now.replace(**exdate_config)
       self.cached_exclusions.append(date)
 
-  def calculate_datetimes(self, threshold):
+  def calculate_datetimes(self, threshold=None):
+    if threshold is None:
+      threshold = self.now
+
     datetimes = list(self.cached_inclusions)
 
     for alarm_rule in self.cached_rrsets:
