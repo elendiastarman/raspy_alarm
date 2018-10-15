@@ -1,4 +1,4 @@
-from dateutil import rrule
+from dateutil import rrule, tz
 
 import datetime
 import hashlib
@@ -12,6 +12,7 @@ MONTH_NAMES = ['jan', 'january', 'feb', 'february', 'mar', 'march', 'apr', 'apri
 MONTHS = {name: index // 2 for index, name in enumerate(MONTH_NAMES)}
 WEEKDAY_NAMES = ['m', 'mo', 'mon', 'monday', 't', 'tu', 'tue', 'tuesday', 'w', 'we', 'wed', 'wednesday', 'r', 'th', 'thu', 'thursday', 'f', 'fr', 'fri', 'friday', 's', 'sa', 'sat', 'saturday', 'u', 'su', 'sun', 'sunday']
 WEEKDAYS = {name: index // 4 for index, name in enumerate(WEEKDAY_NAMES)}
+WEEKDAYNO = (rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR, rrule.SA, rrule.SU)  # This supports e.g. rrule.MO(2) for the second Monday of a month
 
 
 class Scheduler(object):
@@ -19,19 +20,25 @@ class Scheduler(object):
     self.schedule_filepath = schedule_filepath
     self.rouser = rouser
 
+    self.timezone = None
     self.schedule_hash = None
     self.cached_rrsets = []
-    self.cached_exceptions = []
+    self.cached_exclusions = []
+    self.cached_inclusions = []
 
     self.interfaces = []
-    for interface in interfaces or self.interfaces:
+    for interface in interfaces or []:
       self.add_interface(interface)
 
     self.running = True
 
   @property
   def now(self):
-    return datetime.datetime.now().replace(microsecond=0)
+    return datetime.datetime.now(tz=self.timezone).replace(microsecond=0)
+
+  @property
+  def EPOCH(self):
+    return datetime.datetime(2018, 1, 1, 0, 0, 0, tz=self.timezone)
 
   def _make_rrule(self, data):
     if 'freq' in data:
@@ -55,14 +62,18 @@ class Scheduler(object):
       for index, item in enumerate(data['byweekday']):
         if isinstance(item, str):
           data['byweekday'][index] = WEEKDAYS[item.lower()]
+        elif isinstance(item, list) and len(item) == 2:
+          if isinstance(item[0], str):
+            item[0] = WEEKDAYS[item[0].lower()]
+
+          item = WEEKDAYNO[item[0]](item[1])
 
     data.setdefault('bysecond', 0)
 
-    now = datetime.datetime.now()
     if 'dtstart' in data:
-      data['dtstart'] = now.replace(**data['dtstart'])
+      data['dtstart'] = self.now.replace(**data['dtstart'])
     else:
-      data['dtstart'] = now
+      data['dtstart'] = self.EPOCH
 
     return rrule.rrule(**data)
 
@@ -77,17 +88,22 @@ class Scheduler(object):
       pass
 
     if not contents:
-      return []
+      return
 
     schedule_hash = hashlib.sha1(bytes(contents, encoding='utf-8')).hexdigest()
     if schedule_hash == self.schedule_hash:
       return
+
     self.schedule_hash = schedule_hash
 
+    self.timezone = None
     self.cached_rrsets = []
-    self.cached_exceptions = []
+    self.cached_exclusions = []
+    self.cached_inclusions = []
 
     parsed = json.loads(contents)
+    self.timezone = tz.gettz(parsed.get('timezone', None))
+
     now = self.now
 
     for rrset_config in parsed.get('rrule_sets', []):
@@ -116,18 +132,27 @@ class Scheduler(object):
 
       self.cached_rrsets.append(alarm_config)
 
-    for exdate_config in parsed.get('exceptions', []):
-      date = now.replace(**exdate_config)
-      self.cached_exceptions.append(date)
+    exceptions = parsed.get('exceptions', {})
 
-  def _calculate_datetimes(self, threshold):
-    datetimes = []
+    for indate_config in exceptions.get('include', []):
+      date = now.replace(**indate_config)
+      self.cached_inclusions.append(dict(
+        datetime=now.replace(**indate_config['datetime']),
+        params=indate_config['parameters'],
+      ))
+
+    for exdate_config in exceptions.get('exclude', []):
+      date = now.replace(**exdate_config)
+      self.cached_exclusions.append(date)
+
+  def calculate_datetimes(self, threshold):
+    datetimes = list(self.cached_inclusions)
 
     for alarm_rule in self.cached_rrsets:
       rrule_set = alarm_rule['rrule_set']
       temp_dt = rrule_set.after(threshold)
 
-      while temp_dt in self.cached_exceptions:
+      while temp_dt in self.cached_exclusions:
         temp_dt = rrule_set.after(temp_dt)
 
       datetimes.append(dict(
@@ -151,7 +176,7 @@ class Scheduler(object):
 
       now = self.now
       threshold = now - datetime.timedelta(seconds=1)
-      datetimes = sorted(self._calculate_datetimes(threshold), key=lambda _: _['datetime'])
+      datetimes = sorted(self.calculate_datetimes(threshold), key=lambda _: _['datetime'])
 
       if datetimes:
         dt = datetimes[0]['datetime']

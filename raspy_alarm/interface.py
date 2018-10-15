@@ -27,6 +27,9 @@ class Interface(object):
 
 
 class EmailInterface(Interface):
+  NUM_SEND_ATTEMPTS = 2
+  NUM_READ_ATTEMPTS = 2
+
   def __init__(self, **kwargs):
     self.scheduler = None
 
@@ -52,11 +55,15 @@ class EmailInterface(Interface):
     subject = email['Subject'].lower()
     send_acknowledgement = False
 
-    if subject == 'help' and sender in self.info['wakeup_whitelist'] + self.info['edit_whitelist']:
+    if sender not in self.info['wakeup_whitelist'] + self.info['edit_whitelist']:
+      return
+
+    if subject == 'help':
       content = "These are the available commands (commands must be exactly as shown, except capitalization doesn't matter):\n\n"
       content += "help: Respond with this very list of available commands.\n"
       content += "wake up now: Wake up the sleeper immediately.\n"
       content += "cancel alarm: Stop the alarm.\n"
+      content += "schedule: A list of upcoming alarm times.\n"
 
       if sender in self.info['edit_whitelist']:
         pass
@@ -64,7 +71,7 @@ class EmailInterface(Interface):
       content += "\nAs always, feel free to email any of these for more information: {}".format(', '.join(self.main_contacts))
       self._send_email('Re: ' + email['Subject'], content, self.email_address, [sender])
 
-    if subject == 'wake up now' and sender in self.info['wakeup_whitelist']:
+    elif subject == 'wake up now' and sender in self.info['wakeup_whitelist']:
       self.scheduler.rouser.start_alarm('wake up now')
       self.previous_sender = sender
       recipients = list(set(self.main_contacts + [sender]))
@@ -75,6 +82,10 @@ class EmailInterface(Interface):
       recipients = list(set(self.main_contacts + [self.previous_sender, sender]))
       self.previous_sender = None
       self._send_email('Re: ' + email['Subject'], 'Emergency alarm canceled.', self.email_address, recipients)
+
+    elif subject == 'schedule':
+      content = "Upcoming alarm times:\n\n"
+      content += json.dumps(self.scheduler.calculate_datetimes())
 
     if send_acknowledgement:
       self._send_email('Re: ' + email['Subject'], 'acknowledged', self.email_address, [sender])
@@ -131,7 +142,18 @@ class EmailInterface(Interface):
     msg['From'] = from_addr
     msg['To'] = ', '.join(to_addrs)
 
-    self.smtp_server.send_message(msg, from_addr=from_addr, to_addrs=to_addrs)
+    num_attempts = self.NUM_SEND_ATTEMPTS
+    while num_attempts:
+      num_attempts -= 1
+
+      try:
+        self.smtp_server.send_message(msg, from_addr=from_addr, to_addrs=to_addrs)
+      except Exception as e:
+        print("Error in send_message: {}".format(str(e)))
+
+        if num_attempts:
+          self._teardown_smtp()
+          self._setup_smtp()
 
   def _ip_check_loop(self):
     so = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -151,30 +173,60 @@ class EmailInterface(Interface):
 
       time.sleep(60 * 60)
 
-  def startup(self):
-    print("Email interface started.")
-
+  def _setup_smtp(self):
     self.smtp_server = smtplib.SMTP_SSL(self.info['smtp_server'], int(self.info['smtp_port']))
     self.smtp_server.ehlo_or_helo_if_needed()
     self.smtp_server.login(self.info['address'], self.info['password'])
 
+  def _setup_imap(self):
     self.imap_server = imaplib.IMAP4_SSL('imap.gmail.com')
     self.imap_server.login(self.info['address'], self.info['password'])
     self.imap_server.select('INBOX')
+
+  def _teardown_smtp(self):
+    try:
+      if self.smtp_server:
+        self.smtp_server.quit()
+    except Exception as e:
+      print("Error in smtp_server shutdown: {}".format(str(e)))
+    finally:
+      self.smtp_server = None
+
+  def _teardown_imap(self):
+    try:
+      if self.imap_server:
+        self.imap_server.logout()
+    except Exception as e:
+      print("Error in imap_server shutdown: {}".format(str(e)))
+    finally:
+      self.imap_server = None
+
+  def startup(self):
+    print("Email interface started.")
+
+    self._setup_smtp()
+    self._setup_imap()
 
     self.ip_check_thread = Thread(target=self._ip_check_loop, daemon=True)
     self.ip_check_thread.start()
 
   def check(self):
     # print("Email interface checked.")
-    if self.smtp_server:
-      self._read_email()
+    if self.imap_server:
+      num_attempts = self.NUM_READ_ATTEMPTS
+      while num_attempts:
+        num_attempts -= 1
+
+        try:
+          self._read_email()
+        except Exception as e:
+          print("Error in interface check: {}".format(str(e)))
+
+          if num_attempts:
+            self._teardown_imap()
+            self._setup_imap()
 
   def shutdown(self):
     print("  Shutting down email interface.")
-    if self.smtp_server:
-      self.smtp_server.quit()
-      self.smtp_server = None
-    if self.imap_server:
-      self.imap_server.logout()
-      self.imap_server = None
+    self._teardown_smtp()
+    self._teardown_imap()

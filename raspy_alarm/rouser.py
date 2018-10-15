@@ -1,4 +1,5 @@
 import time
+import datetime
 import gpiozero
 
 MAX_SHAKE_DURATION = 60 * 10  # 10 minutes in seconds
@@ -86,8 +87,7 @@ class Rouser(object):
       if self.alarm['shake_time'] and self.alarm['shake_time'] + MAX_SHAKE_DURATION < time.time():
         self.stop_alarm()
 
-  def start_alarm(self, name, stop_conditions=None, snooze_conditions=None, beep_off_length=None, beep_on_length=None, snooze_duration=None):
-    print("Starting alarm {}...".format(name))
+  def start_alarm(self, name, stop_conditions=None, snooze_conditions=None, beep_off_length=None, beep_on_length=None, snooze_duration=None, timezone=None):
     self.alarm['name'] = name
     self.alarm['conditions_to_stop_alarm'] = stop_conditions
     self.alarm['conditions_to_snooze_alarm'] = snooze_conditions
@@ -96,6 +96,7 @@ class Rouser(object):
     self.alarm['snooze_duration'] = snooze_duration
     self.alarm['shake_time'] = None
     self.alarm['snooze_time'] = None
+    self.alarm['timezone'] = timezone
 
     if self.alarm['name'] in self.alarms:
       self.alarm['conditions_to_stop_alarm'] = self.alarm['conditions_to_stop_alarm'] or self.alarms[self.alarm['name']].get('stop_conditions', None)
@@ -107,6 +108,10 @@ class Rouser(object):
     self.alarm['beep_off_length'] = self.alarm['beep_off_length'] or self.default_beep_off_length
     self.alarm['beep_on_length'] = self.alarm['beep_on_length'] or self.default_beep_on_length
     self.alarm['snooze_duration'] = self.alarm['snooze_duration'] or self.default_snooze_duration
+
+    print("Starting alarm {} at {}...".format(self.alarm['name'], datetime.datetime.now(tz=self.alarm['timezone'])))
+    if name is None:
+      print("Alarm settings:", self.alarm)
 
     self.resume_alarm()
 
@@ -121,9 +126,10 @@ class Rouser(object):
     self.alarm['shake_time'] = None
 
   def stop_alarm(self):
-    print("Stopping alarm {}...".format(self.alarm['name']))
     self.shaker.off()
-    self._reset_alarm()
+    if any(self.alarm.values()):
+      print("Stopping alarm {} at {}...".format(self.alarm['name'], datetime.datetime.now(tz=self.alarm['timezone'])))
+      self._reset_alarm()
 
   def shutdown(self):
     print("Shutting down rouser.")
