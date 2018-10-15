@@ -152,6 +152,7 @@ class EmailInterface(Interface):
 
       try:
         self.smtp_server.send_message(msg, from_addr=from_addr, to_addrs=to_addrs)
+        break
       except Exception as e:
         print("Error in send_message: {}".format(str(e)))
 
@@ -223,6 +224,7 @@ class EmailInterface(Interface):
 
         try:
           self._read_email()
+          break
         except Exception as e:
           print("Error in interface check: {}".format(str(e)))
 
