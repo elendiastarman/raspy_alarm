@@ -191,7 +191,8 @@ class Scheduler(object):
         params = datetimes[0]['params']
         name = params.get('name', None)
 
-        if now > dt - datetime.timedelta(seconds=5) and (name is None or name != self.rouser.alarm['name']):
+        delta = datetime.timedelta(seconds=5)
+        if dt - delta < now < dt + delta and (name is None or name != self.rouser.alarm['name']):
           self.rouser.start_alarm(**params)
 
       time.sleep(1)
