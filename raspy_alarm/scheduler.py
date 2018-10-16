@@ -102,7 +102,12 @@ class Scheduler(object):
     self.cached_exclusions = []
     self.cached_inclusions = []
 
-    parsed = json.loads(contents)
+    try:
+      parsed = json.loads(contents)
+    except Exception as e:
+      print("Error loading schedule JSON: {}".format(str(e)))
+      return
+
     self.timezone = tz.gettz(parsed.get('timezone', None))
 
     now = self.now
@@ -136,7 +141,6 @@ class Scheduler(object):
     exceptions = parsed.get('exceptions', {})
 
     for indate_config in exceptions.get('include', []):
-      date = now.replace(**indate_config)
       self.cached_inclusions.append(dict(
         datetime=now.replace(**indate_config['datetime']),
         params=indate_config['parameters'],
