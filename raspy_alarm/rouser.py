@@ -52,7 +52,8 @@ class Rouser(object):
     self.old_alarm = self.alarm.copy()
     self.alarm = {
       'name': None,  # string
-      'conditions_to_stop_alarm': None,  # callables that take the current time and a list of button presses as arguments
+      'conditions_to_start_alarm': None,  # callables that take the current time and a list of button presses as arguments
+      'conditions_to_stop_alarm': None,
       'conditions_to_snooze_alarm': None,
       'beep_off_length': None,
       'beep_on_length': None,
@@ -108,12 +109,13 @@ class Rouser(object):
       if self.alarm['onset_time'] and self.alarm['onset_time'] + self.max_active_duration < time.time():
         self.stop_alarm()
 
-  def start_alarm(self, name, stop_conditions=None, snooze_conditions=None, beep_off_length=None, beep_on_length=None, snooze_duration=None, timezone=None):
+  def start_alarm(self, name, start_conditions=None, stop_conditions=None, snooze_conditions=None, beep_off_length=None, beep_on_length=None, snooze_duration=None, timezone=None):
     if name is not None and name == self.alarm['name']:
       return
 
     self.alarm['name'] = {
       'name': name,
+      'conditions_to_start_alarm': start_conditions,
       'conditions_to_stop_alarm': stop_conditions,
       'conditions_to_snooze_alarm': snooze_conditions,
       'beep_off_length': beep_off_length,
@@ -127,6 +129,7 @@ class Rouser(object):
     if self.alarm['name'] in self.alarms:
       named_alarm = self.alarms[self.alarm['name']]
       # overrides = {key: }
+      self.alarm['conditions_to_start_alarm'] = self.alarm['conditions_to_start_alarm'] or named_alarm.get('start_conditions', None)
       self.alarm['conditions_to_stop_alarm'] = self.alarm['conditions_to_stop_alarm'] or named_alarm.get('stop_conditions', None)
       self.alarm['conditions_to_snooze_alarm'] = self.alarm['conditions_to_snooze_alarm'] or named_alarm.get('snooze_conditions', None)
       self.alarm['beep_off_length'] = self.alarm['beep_off_length'] or named_alarm.get('off_time', None)
