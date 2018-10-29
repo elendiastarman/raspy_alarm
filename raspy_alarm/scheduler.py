@@ -22,7 +22,7 @@ class Scheduler(object):
     self.rousers = {}
     if rousers:
       for rouser in rousers:
-        self.rousers[rouser['name']] = rouser
+        self.rousers[rouser.name] = rouser
 
     self.interfaces = []
     if interfaces:

@@ -82,7 +82,7 @@ class Rouser(object):
     return True
 
   def main_loop(self):
-    print("Rouser main loop running...")
+    print("Rouser \"{}\" main loop running...".format(self.name))
 
     while self.running:
       # print("Ping - rouser")
@@ -164,6 +164,6 @@ class Rouser(object):
       self._reset_alarm()
 
   def shutdown(self):
-    print("Shutting down rouser.")
+    print("Shutting down \"{}\" rouser.".format(self.name))
     self.stop_alarm()
     self.running = False
