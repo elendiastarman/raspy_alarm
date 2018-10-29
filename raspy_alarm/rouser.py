@@ -90,8 +90,8 @@ class Rouser(object):
       time.sleep(1)
 
       for name, params in self.alarms.items():
-        if params.get('conditions_to_start_alarm', None):
-          if self._evaluate_conditions(params['conditions_to_start_alarm']):
+        if params.get('start_conditions', None):
+          if self._evaluate_conditions(params['start_conditions']):
             self.start_alarm(name)
 
       if self.alarm['snooze_time']:
