@@ -16,19 +16,25 @@ WEEKDAYNO = (rrule.MO, rrule.TU, rrule.WE, rrule.TH, rrule.FR, rrule.SA, rrule.S
 
 
 class Scheduler(object):
-  def __init__(self, schedule_filepath, alarms=None, rouser=None, interfaces=None):
+  def __init__(self, schedule_filepath, alarms=None, rousers=None, interfaces=None):
     self.schedule_filepath = schedule_filepath
-    self.rouser = rouser
+
+    self.rousers = {}
+    if rousers:
+      for rouser in rousers:
+        self.rousers[rouser['name']] = rouser
+
+    self.interfaces = []
+    if interfaces:
+      for interface in interfaces:
+        interface.scheduler = self
+        self.interfaces.append(interface)
 
     self.timezone = None
     self.schedule_hash = None
     self.cached_rrsets = []
     self.cached_exclusions = []
     self.cached_inclusions = []
-
-    self.interfaces = []
-    for interface in interfaces or []:
-      self.add_interface(interface)
 
     self.running = True
 
@@ -186,20 +192,17 @@ class Scheduler(object):
       threshold = now - datetime.timedelta(seconds=1)
       datetimes = sorted(self.calculate_datetimes(threshold), key=lambda _: _['datetime'])
 
-      if datetimes:
-        dt = datetimes[0]['datetime']
-        params = datetimes[0]['params']
-        name = params.get('name', None)
+      for alarm_datetime in datetimes:
+        dt = alarm_datetime['datetime']
+        params = alarm_datetime['params']
 
         delta = datetime.timedelta(seconds=5)
-        if dt - delta < now < dt + delta and (name is None or name != self.rouser.alarm['name']):
-          self.rouser.start_alarm(**params)
+        if dt - delta < now < dt + delta:
+          for rouser_name, alarm_params in params.items():
+            alarm_params['timezone'] = self.timezone
+            self.rouser[rouser_name].start_alarm(**alarm_params)
 
       time.sleep(1)
-
-  def add_interface(self, interface):
-    interface.scheduler = self
-    self.interfaces.append(interface)
 
   def shutdown(self):
     print("Shutting down interfaces.")

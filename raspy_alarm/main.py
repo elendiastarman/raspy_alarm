@@ -19,28 +19,25 @@ from scheduler import Scheduler
 from rouser import Rouser
 
 try:
-  from alarm_configuration import hardware, emails, alarms
+  from alarm_configuration import rouser_configs, emails, alarms
 except ImportError as e:
-  print("Error:", str(e))
-  print("No configuration found in alarm_configuration.py; using defaults. Look at alarm_configuration.example for ideas.")
-  hardware = {
-    'output_pins': [2],
-    'input_pins': [21],
-    'invert_on_off': True,
-  }
-  emails = {}
-  alarms = {}
+  raise ValueError("No configuration found in alarm_configuration.py; look at alarm_configuration.example for ideas.")
 
-rouser = None
+rousers = None
 scheduler = None
 
 
 def shutdown(signum=None, frame=None):
-  global rouser, scheduler
+  global rousers, scheduler
 
-  if rouser:
-    rouser.shutdown()
-    rouser = None
+  if rousers:
+    for rouser in rousers:
+      try:
+        rouser.shutdown()
+      except Exception as e:
+        print("Error shutting down rouser: {}".format(str(e)))
+
+    rousers = None
 
   if scheduler:
     scheduler.shutdown()
@@ -48,7 +45,7 @@ def shutdown(signum=None, frame=None):
 
 
 def run():
-  global rouser, scheduler
+  global rousers, scheduler
   args = docopt(__doc__)
 
   interfaces = []
@@ -57,13 +54,19 @@ def run():
     interface.startup()
     interfaces.append(interface)
 
-  rouser = Rouser(hardware['output_pins'][0], hardware['input_pins'], invert_on_off=hardware['invert_on_off'], alarms=alarms)
-  rouser_thread = Thread(target=rouser.main_loop)
+  rousers = []
+  for rouser_name, rouser_config in rouser_configs:
+    rouser_config['name'] = rouser_name
+    rouser_config['alarms'] = alarms.get(rouser_name, {})
 
-  scheduler = Scheduler('schedule_rules.json', rouser=rouser, interfaces=interfaces)
+    rouser = Rouser(**rouser_config)
+    rousers.append(rouser)
+
+    rouser_thread = Thread(target=rouser.main_loop)
+    rouser_thread.start()
+
+  scheduler = Scheduler('schedule_rules.json', rousers=rousers, interfaces=interfaces)
   scheduler_thread = Thread(target=scheduler.main_loop)
-
-  rouser_thread.start()
   scheduler_thread.start()
 
   signal.signal(signal.SIGINT, shutdown)
