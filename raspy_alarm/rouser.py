@@ -4,22 +4,37 @@ import gpiozero
 
 
 class Rouser(object):
+  OUTPUTS = {}
+  INPUTS = {}
+
   def __init__(self, name, output_pins, input_pins, alarms=None, invert_on_off=False, **additional_params):
     self.name = name
 
+    # Initialize the output interface if needed
     self.output_pins = output_pins
-    self.output = gpiozero.Buzzer(output_pins[0])
-    if invert_on_off:
-      self.output.on, self.output.off = self.output.off, self.output.on  # e.g. a particular shaker vibrates when it's "off"
-    self.output.off()
 
+    if output_pins[0] not in self.OUTPUTS:
+      output = gpiozero.Buzzer(output_pins[0])
+      if invert_on_off:
+        output.on, output.off = output.off, output.on  # e.g. a particular shaker vibrates when it's "off"
+      output.off()
+
+      self.OUTPUTS[output_pins[0]] = output
+
+    self.output = self.OUTPUTS[output_pins[0]]
+
+    # Initialize the input interfaces if needed
     self.input_pins = input_pins
     self.inputs = {}
-    for pin in input_pins:
-      button = gpiozero.Button(pin)
-      button.when_pressed = lambda b: self.inputs[b.pin.number]['events'].append([time.time()])
-      button.when_released = lambda b: self.inputs[b.pin.number]['events'][-1].append(time.time())
 
+    for pin in input_pins:
+      if pin not in self.INPUTS:
+        button = gpiozero.Button(pin)
+        button.when_pressed = lambda b: self.inputs[b.pin.number]['events'].append([time.time()])
+        button.when_released = lambda b: self.inputs[b.pin.number]['events'][-1].append(time.time())
+        self.INPUTS[pin] = button
+
+      button = self.INPUTS[pin]
       self.inputs[button.pin.number] = {'button': button, 'events': []}
 
     self.alarms = alarms or {}

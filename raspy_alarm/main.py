@@ -55,7 +55,7 @@ def run():
     interfaces.append(interface)
 
   rousers = []
-  for rouser_name, rouser_config in rouser_configs:
+  for rouser_name, rouser_config in rouser_configs.items():
     rouser_config['name'] = rouser_name
     rouser_config['alarms'] = alarms.get(rouser_name, {})
 
