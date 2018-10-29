@@ -60,6 +60,7 @@ class Rouser(object):
       'onset_time': None,
       'snooze_time': None,
       'snooze_duration': None,
+      'timezone': None,
     }
 
   def _evaluate_conditions(self, conditions):
