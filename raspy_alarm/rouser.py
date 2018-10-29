@@ -113,7 +113,7 @@ class Rouser(object):
     if name is not None and name == self.alarm['name']:
       return
 
-    self.alarm['name'] = {
+    self.alarm = {
       'name': name,
       'conditions_to_start_alarm': start_conditions,
       'conditions_to_stop_alarm': stop_conditions,
@@ -126,8 +126,8 @@ class Rouser(object):
       'timezone': timezone,
     }
 
-    if self.alarm['name'] in self.alarms:
-      named_alarm = self.alarms[self.alarm['name']]
+    if name in self.alarms:
+      named_alarm = self.alarms[name]
       # overrides = {key: }
       self.alarm['conditions_to_start_alarm'] = self.alarm['conditions_to_start_alarm'] or named_alarm.get('start_conditions', None)
       self.alarm['conditions_to_stop_alarm'] = self.alarm['conditions_to_stop_alarm'] or named_alarm.get('stop_conditions', None)
