@@ -200,7 +200,7 @@ class Scheduler(object):
         if dt - delta < now < dt + delta:
           for rouser_name, alarm_params in params.items():
             alarm_params['timezone'] = self.timezone
-            self.rouser[rouser_name].start_alarm(**alarm_params)
+            self.rousers[rouser_name].start_alarm(**alarm_params)
 
       time.sleep(1)
 
