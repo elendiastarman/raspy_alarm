@@ -25,17 +25,13 @@ class Rouser(object):
 
     # Initialize the input interfaces if needed
     self.input_pins = input_pins
-    self.inputs = {}
 
     for pin in input_pins:
       if pin not in self.INPUTS:
         button = gpiozero.Button(pin)
-        button.when_pressed = lambda b: self.inputs[b.pin.number]['events'].append([time.time()])
-        button.when_released = lambda b: self.inputs[b.pin.number]['events'][-1].append(time.time())
-        self.INPUTS[pin] = button
-
-      button = self.INPUTS[pin]
-      self.inputs[button.pin.number] = {'button': button, 'events': []}
+        button.when_pressed = lambda b: self.INPUTS[b.pin.number]['events'].append([time.time()])
+        button.when_released = lambda b: self.INPUTS[b.pin.number]['events'][-1].append(time.time())
+        self.INPUTS[pin] = {'button': button, 'events': []}
 
     self.alarms = alarms or {}
     self.alarm = {}
@@ -69,7 +65,7 @@ class Rouser(object):
     for or_cond in conditions:
       for and_cond in or_cond:
         try:
-          if not and_cond(current_time, self.input_pins, self.inputs):
+          if not and_cond(current_time, self.input_pins, self.INPUTS):
             break
         except Exception as e:
           print("Error evaluating condition:", str(e))
