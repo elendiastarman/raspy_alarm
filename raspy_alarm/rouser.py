@@ -32,7 +32,7 @@ class Rouser(object):
         button = gpiozero.Button(pin)
 
         if pin in self.toggle_pins:
-          button.when_pressed = lambda b: self.output.on() if (self.output.is_active ^ (not invert_on_off)) else self.output.off()
+          button.when_pressed = lambda b: (self.alarm['onset_time'] is None) and (self.output.on() if (self.output.is_active ^ (not invert_on_off)) else self.output.off())
 
         else:
           button.when_pressed = lambda b: self.INPUTS[b.pin.number]['events'].append([time.time()])
