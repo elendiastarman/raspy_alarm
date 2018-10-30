@@ -25,13 +25,19 @@ class Rouser(object):
 
     # Initialize the input interfaces if needed
     self.input_pins = input_pins
+    self.toggle_pins = additional_params.get('toggle_pins', [])
 
     for pin in input_pins:
       if pin not in self.INPUTS:
         button = gpiozero.Button(pin)
-        button.when_pressed = lambda b: self.INPUTS[b.pin.number]['events'].append([time.time()])
-        button.when_released = lambda b: self.INPUTS[b.pin.number]['events'][-1].append(time.time())
-        self.INPUTS[pin] = {'button': button, 'events': []}
+
+        if pin in self.toggle_pins:
+          button.when_pressed = lambda b: self.output.on() if (self.output.is_active ^ (not invert_on_off)) else self.output.off()
+
+        else:
+          button.when_pressed = lambda b: self.INPUTS[b.pin.number]['events'].append([time.time()])
+          button.when_released = lambda b: self.INPUTS[b.pin.number]['events'][-1].append(time.time())
+          self.INPUTS[pin] = {'button': button, 'events': []}
 
     self.alarms = alarms or {}
     self.alarm = {}
@@ -41,6 +47,7 @@ class Rouser(object):
     self.default_beep_off_length = additional_params.get('default_beep_off_length', 0.5)
     self.default_snooze_duration = additional_params.get('default_snooze_duration', 600)
     self.max_active_duration = additional_params.get('max_active_duration', 600)
+    self.default_snooze_state = additional_params.get('default_snooze_state', 'off')
 
     self.running = True
 
@@ -56,6 +63,7 @@ class Rouser(object):
       'onset_time': None,
       'snooze_time': None,
       'snooze_duration': None,
+      'snooze_state': None,
       'timezone': None,
     }
 
@@ -106,7 +114,7 @@ class Rouser(object):
       if self.alarm['onset_time'] and self.alarm['onset_time'] + self.max_active_duration < time.time():
         self.stop_alarm()
 
-  def start_alarm(self, name, start_conditions=None, stop_conditions=None, snooze_conditions=None, beep_off_length=None, beep_on_length=None, snooze_duration=None, timezone=None):
+  def start_alarm(self, name, start_conditions=None, stop_conditions=None, snooze_conditions=None, beep_off_length=None, beep_on_length=None, snooze_duration=None, snooze_state=None, timezone=None):
     if name is not None and name == self.alarm['name']:
       return
 
@@ -118,6 +126,7 @@ class Rouser(object):
       'beep_off_length': beep_off_length,
       'beep_on_length': beep_on_length,
       'snooze_duration': snooze_duration,
+      'snooze_state': snooze_state,
       'onset_time': None,
       'snooze_time': None,
       'timezone': timezone,
@@ -132,10 +141,12 @@ class Rouser(object):
       self.alarm['beep_off_length'] = self.alarm['beep_off_length'] or named_alarm.get('off_time', None)
       self.alarm['beep_on_length'] = self.alarm['beep_on_length'] or named_alarm.get('on_time', None)
       self.alarm['snooze_duration'] = self.alarm['snooze_duration'] or named_alarm.get('snooze_time', None)
+      self.alarm['snooze_state'] = self.alarm['snooze_state'] or named_alarm.get('snooze_state', None)
 
     self.alarm['beep_off_length'] = self.alarm['beep_off_length'] or self.default_beep_off_length
     self.alarm['beep_on_length'] = self.alarm['beep_on_length'] or self.default_beep_on_length
     self.alarm['snooze_duration'] = self.alarm['snooze_duration'] or self.default_snooze_duration
+    self.alarm['snooze_state'] = self.alarm['snooze_state'] or self.default_snooze_state
 
     print("Starting alarm {} at {}...".format(self.alarm['name'], datetime.datetime.now(tz=self.alarm['timezone'])))
     if name is None:
@@ -153,7 +164,11 @@ class Rouser(object):
       self.output.on()
 
   def snooze_alarm(self):
-    self.output.off()
+    if self.alarm['snooze_state'] == 'off':
+      self.output.off()
+    else:
+      self.output.on()
+
     self.alarm['snooze_time'] = time.time()
     self.alarm['onset_time'] = None
 
