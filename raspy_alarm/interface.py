@@ -229,8 +229,11 @@ class EmailInterface(Interface):
           print("Error in interface check: {}".format(str(e)))
 
           if num_attempts:
-            self._teardown_imap()
-            self._setup_imap()
+            try:
+              self._teardown_imap()
+              self._setup_imap()
+            except Exception as e:
+              print("Error while trying to reboot imap server:", str(e))
 
   def shutdown(self):
     print("  Shutting down email interface.")

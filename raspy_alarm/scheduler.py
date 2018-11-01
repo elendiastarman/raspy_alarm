@@ -184,7 +184,10 @@ class Scheduler(object):
 
       for interface in self.interfaces:
         # The interface is responsible for using methods on the scheduler to do stuff
-        interface.check()
+        try:
+          interface.check()
+        except Exception as e:
+          print("Error while checking interface:", str(e))
 
       self._check_schedule()
 
