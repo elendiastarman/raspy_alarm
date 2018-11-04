@@ -37,7 +37,8 @@ class Rouser(object):
         else:
           button.when_pressed = lambda b: self.INPUTS[b.pin.number]['events'].append([time.time()])
           button.when_released = lambda b: self.INPUTS[b.pin.number]['events'][-1].append(time.time())
-          self.INPUTS[pin] = {'button': button, 'events': []}
+
+        self.INPUTS[pin] = {'button': button, 'events': []}
 
     self.alarms = alarms or {}
     self.alarm = {}

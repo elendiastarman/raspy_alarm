@@ -1,6 +1,7 @@
 from email.message import Message
 from threading import Thread
 
+import traceback
 import imaplib
 import smtplib
 import socket
@@ -72,7 +73,7 @@ class EmailInterface(Interface):
       self._send_email('Re: ' + email['Subject'], content, self.email_address, [sender])
 
     elif subject == 'wake up now' and sender in self.info['wakeup_whitelist']:
-      for rouser in self.scheduler.rousers:
+      for rouser in self.scheduler.rousers.values():
         rouser.start_alarm('wake up now')
 
       self.previous_sender = sender
@@ -80,7 +81,7 @@ class EmailInterface(Interface):
       self._send_email('Re: ' + email['Subject'], 'Emergency alarm started.', self.email_address, recipients)
 
     elif subject == 'cancel alarm' and sender in self.info['wakeup_whitelist']:
-      for rouser in self.scheduler.rousers:
+      for rouser in self.scheduler.rousers.values():
         rouser.stop_alarm()
 
       recipients = list(set(self.main_contacts + [self.previous_sender, sender]))
@@ -139,6 +140,8 @@ class EmailInterface(Interface):
   def _send_email(self, subject, content, from_addr=None, to_addrs=None):
     if from_addr is None:
       from_addr = self.email_address
+
+    to_addrs = list(filter(bool, to_addrs))  # Clear out any null or empty values
     if to_addrs is None:
       to_addrs = self.main_contacts
 
@@ -231,6 +234,7 @@ class EmailInterface(Interface):
           break
         except Exception as e:
           print("Error in interface check: {}".format(str(e)))
+          traceback.print_exc()
 
           if num_attempts:
             try:
