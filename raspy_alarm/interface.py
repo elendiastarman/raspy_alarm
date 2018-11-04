@@ -72,13 +72,17 @@ class EmailInterface(Interface):
       self._send_email('Re: ' + email['Subject'], content, self.email_address, [sender])
 
     elif subject == 'wake up now' and sender in self.info['wakeup_whitelist']:
-      self.scheduler.rouser.start_alarm('wake up now')
+      for rouser in self.scheduler.rousers:
+        rouser.start_alarm('wake up now')
+
       self.previous_sender = sender
       recipients = list(set(self.main_contacts + [sender]))
       self._send_email('Re: ' + email['Subject'], 'Emergency alarm started.', self.email_address, recipients)
 
     elif subject == 'cancel alarm' and sender in self.info['wakeup_whitelist']:
-      self.scheduler.rouser.stop_alarm()
+      for rouser in self.scheduler.rousers:
+        rouser.stop_alarm()
+
       recipients = list(set(self.main_contacts + [self.previous_sender, sender]))
       self.previous_sender = None
       self._send_email('Re: ' + email['Subject'], 'Emergency alarm canceled.', self.email_address, recipients)
