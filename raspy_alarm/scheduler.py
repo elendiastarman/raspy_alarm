@@ -189,7 +189,10 @@ class Scheduler(object):
         except Exception as e:
           print("Error while checking interface:", str(e))
 
-      self._check_schedule()
+      try:
+        self._check_schedule()
+      except Exception as e:
+        print("Error while checking schedule:", str(e))
 
       now = self.now
       threshold = now - datetime.timedelta(seconds=1)
