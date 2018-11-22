@@ -141,8 +141,9 @@ class EmailInterface(Interface):
     if from_addr is None:
       from_addr = self.email_address
 
-    to_addrs = list(filter(bool, to_addrs))  # Clear out any null or empty values
-    if to_addrs is None:
+    if to_addrs is not None:
+      to_addrs = list(filter(bool, to_addrs))  # Clear out any null or empty values
+    else:
       to_addrs = self.main_contacts
 
     print("Content: ", content)
