@@ -12,10 +12,11 @@ class Rouser(object):
 
     # Initialize the output interface if needed
     self.output_pins = output_pins
+    self.invert_on_off = invert_on_off
 
     if output_pins[0] not in self.OUTPUTS:
       output = gpiozero.Buzzer(output_pins[0])
-      if invert_on_off:
+      if self.invert_on_off:
         output.on, output.off = output.off, output.on  # e.g. a particular shaker vibrates when it's "off"
       output.off()
 
@@ -32,11 +33,11 @@ class Rouser(object):
         button = gpiozero.Button(pin)
 
         if pin in self.toggle_pins:
-          button.when_pressed = lambda b: (self.alarm['onset_time'] is None) and (self.output.on() if (self.output.is_active ^ (not invert_on_off)) else self.output.off())
-
+          button.when_pressed = lambda b: (self._record_button_press(b), self._toggle_when_alarm_off(b))
         else:
-          button.when_pressed = lambda b: self.INPUTS[b.pin.number]['events'].append([time.time()])
-          button.when_released = lambda b: self.INPUTS[b.pin.number]['events'][-1].append(time.time())
+          button.when_pressed = lambda b: self._record_button_press(b)
+
+        button.when_released = lambda b: self._record_button_release(b)
 
         self.INPUTS[pin] = {'button': button, 'events': []}
 
@@ -51,6 +52,19 @@ class Rouser(object):
     self.default_snooze_state = additional_params.get('default_snooze_state', 'off')
 
     self.running = True
+
+  def _toggle_when_alarm_off(self, b):
+    if self.alarm['onset_time'] is None:
+      if self.output.is_active ^ (not self.invert_on_off):
+        self.output.on()
+      else:
+        self.output.off()
+
+  def _record_button_press(self, b):
+    self.INPUTS[b.pin.number]['events'].append([time.time()])
+
+  def _record_button_release(self, b):
+    self.INPUTS[b.pin.number]['events'][-1].append(time.time())
 
   def _reset_alarm(self):
     self.old_alarm = self.alarm.copy()
